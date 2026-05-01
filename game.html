@@ -89,7 +89,32 @@
 
 <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const data = JSON.parse(decodeURIComponent(urlParams.get('data') || '{}'));
+    let rawData = "";
+    
+    if (urlParams.has('z')) {
+        rawData = decompress(urlParams.get('z'));
+    } else {
+        rawData = decodeURIComponent(urlParams.get('data') || '{}');
+    }
+    
+    const data = JSON.parse(rawData);
+
+    // LZW Decompression
+    function decompress(compressed) {
+        let dictionary = {};
+        for (let i = 0; i < 256; i++) dictionary[i] = String.fromCharCode(i);
+        let codes = Array.from(compressed).map(c => c.charCodeAt(0));
+        let word = String.fromCharCode(codes[0]), result = word, dictSize = 256;
+        for (let i = 1; i < codes.length; i++) {
+            let k = codes[i], entry = "";
+            if (dictionary.hasOwnProperty(k)) entry = dictionary[k];
+            else if (k === dictSize) entry = word + word.charAt(0);
+            result += entry;
+            dictionary[dictSize++] = word + entry.charAt(0);
+            word = entry;
+        }
+        return result;
+    }
 
     const state = {
         currentStar: null,
