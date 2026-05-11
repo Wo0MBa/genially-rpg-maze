@@ -20,12 +20,13 @@
     .start-marker { width: 30px; height: 30px; background: #00ff00; }
     .star-marker { width: 25px; height: 25px; background: gold; }
 
-    /* Панель задач */
     #tasks-panel { display: flex; flex-direction: column; gap: 15px; }
     .task-card { background: rgba(0, 191, 255, 0.1); border: 1px solid #00bfff; padding: 15px; border-radius: 8px; position: relative; }
     .task-badge { position: absolute; top: -10px; left: -10px; background: gold; color: black; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; }
-    .task-row { display: flex; gap: 10px; }
-    .task-row input { margin-bottom: 0; }
+    
+    .opts-container { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+    .add-opt-btn { background: transparent; border: 1px dashed #00bfff; color: #00bfff; padding: 8px; margin-bottom: 10px; }
+    .add-opt-btn:hover { background: rgba(0, 191, 255, 0.1); }
   </style>
 </head>
 <body>
@@ -40,14 +41,13 @@
     <button id="load-bg">Загрузить фон</button>
 
     <h3>2. Расстановка точек</h3>
-    <p style="color: #aaa;">Первый клик: <b>СТАРТ</b> (зеленый). Следующие клики: <b>ЗВЕЗДЫ</b> (желтые).</p>
+    <p style="color: #aaa;">Первый клик: <b>СТАРТ</b> (зеленый). Следующие: <b>ЗВЕЗДЫ</b> (желтые).</p>
     <div id="preview-area" style="display: none;">
       <img id="bg-preview" src="" alt="Фон">
     </div>
 
-    <h3>3. Задания (заполняются автоматически после кликов)</h3>
+    <h3>3. Задания</h3>
     <div id="tasks-panel">
-      <!-- Сюда будут добавляться формы для вопросов -->
       <p id="no-tasks-msg" style="color: #666; font-style: italic;">Кликните по фону, чтобы добавить звезду с заданием...</p>
     </div>
 
@@ -64,7 +64,6 @@
     const previewArea = document.getElementById('preview-area');
     const tasksPanel = document.getElementById('tasks-panel');
 
-    // Загрузка фона
     document.getElementById('load-bg').addEventListener('click', () => {
       const url = document.getElementById('bg-url').value;
       if(url) {
@@ -74,7 +73,6 @@
       }
     });
 
-    // Клик по картинке
     previewArea.addEventListener('click', (e) => {
       const rect = bgPreview.getBoundingClientRect();
       const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
@@ -85,10 +83,7 @@
         addMarker(xPercent, yPercent, 'start-marker', 'S');
       } else {
         taskCounter++;
-        
-        // Создаем временный объект в массиве, чтобы застолбить координаты
         gameData.tasks.push({ x: xPercent, y: yPercent, id: taskCounter });
-        
         addMarker(xPercent, yPercent, 'star-marker', taskCounter);
         createTaskForm(taskCounter);
       }
@@ -110,22 +105,33 @@
       card.className = 'task-card';
       card.id = `task-form-${id}`;
       
+      // Изначально 3 варианта, но можно добавить еще
       card.innerHTML = `
         <div class="task-badge">${id}</div>
         <input type="text" class="task-q" placeholder="Вопрос (например: 2 + 2 = ?)">
-        <div class="task-row">
+        <div class="opts-container" id="opts-${id}">
           <input type="text" class="task-opt" placeholder="Вариант 1">
           <input type="text" class="task-opt" placeholder="Вариант 2">
           <input type="text" class="task-opt" placeholder="Вариант 3">
         </div>
-        <input type="text" class="task-correct" placeholder="ПРАВИЛЬНЫЙ вариант (впишите сюда текст правильного ответа)" style="border-color: #00ff00;">
+        <button class="add-opt-btn" onclick="addOptionToTask(${id})">+ Добавить вариант ответа</button>
+        <input type="text" class="task-correct" placeholder="ПРАВИЛЬНЫЙ вариант (точное совпадение с одним из вариантов сверху)" style="border-color: #00ff00;">
       `;
       tasksPanel.appendChild(card);
     }
 
-    // Генерация iframe
+    // Функция для добавления новых полей ввода в конкретное задание
+    window.addOptionToTask = function(id) {
+      const container = document.getElementById(`opts-${id}`);
+      const newIndex = container.children.length + 1;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'task-opt';
+      input.placeholder = `Вариант ${newIndex}`;
+      container.appendChild(input);
+    };
+
     document.getElementById('generate-btn').addEventListener('click', () => {
-      // Собираем персонажей
       gameData.chars = [
         document.getElementById('char1-url').value,
         document.getElementById('char2-url').value,
@@ -136,19 +142,17 @@
         return alert('Загрузите фон и укажите хотя бы точку старта!');
       }
 
-      // Собираем данные из форм заданий
       let formsValid = true;
       gameData.tasks.forEach((task) => {
         const form = document.getElementById(`task-form-${task.id}`);
         const q = form.querySelector('.task-q').value;
         const correct = form.querySelector('.task-correct').value;
         
-        // Собираем только заполненные варианты ответа
         const options = Array.from(form.querySelectorAll('.task-opt'))
                              .map(input => input.value.trim())
                              .filter(Boolean);
 
-        if (!q || !correct || options.length === 0) {
+        if (!q || !correct || options.length < 2) {
           formsValid = false;
         }
 
@@ -158,10 +162,9 @@
       });
 
       if (!formsValid) {
-        return alert('Пожалуйста, заполните все поля в заданиях (вопрос, варианты и правильный ответ).');
+        return alert('Заполните все задания! Минимум 2 варианта ответа и указан правильный.');
       }
 
-      // Кодируем
       const encodedData = btoa(encodeURIComponent(JSON.stringify(gameData)));
       const currentUrl = window.location.href.replace(/\/[^\/]*$/, '/');
       const widgetUrl = `${currentUrl}maze-widget.html?data=${encodedData}`;
@@ -171,7 +174,6 @@
       textarea.value = iframeStr;
       
       navigator.clipboard.writeText(iframeStr);
-      
       const btn = document.getElementById('generate-btn');
       btn.innerText = '✅ Код скопирован в буфер обмена!';
       setTimeout(() => btn.innerText = 'Сгенерировать код для Genially', 2000);
