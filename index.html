@@ -28,11 +28,15 @@
     .delete-task-btn { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; margin: 0; padding: 0; background: #dc3545; color: white; border-radius: 5px; font-size: 16px; cursor: pointer; border: none; transition: 0.2s; display: flex; justify-content: center; align-items: center; }
     .delete-task-btn:hover { background: #c82333; transform: scale(1.1); }
 
+    /* Обертка для вариантов ответа с крестиком */
+    .opt-wrapper { display: flex; gap: 8px; margin-bottom: 8px; }
+    .opt-wrapper input { margin-bottom: 0 !important; }
+
     /* Кнопка удаления ДОП ВАРИАНТА (в линию) */
     .delete-opt-btn { width: 44px; height: 44px; background: #dc3545; color: white; border-radius: 8px; font-size: 16px; cursor: pointer; border: none; transition: 0.2s; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
     .delete-opt-btn:hover { background: #c82333; transform: scale(1.1); }
 
-    .opts-container { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+    .opts-container { display: flex; flex-direction: column; margin-bottom: 10px; }
     .add-opt-btn { background: transparent; border: 1px dashed #00bfff; color: #00bfff; padding: 8px; margin-bottom: 10px; }
     .add-opt-btn:hover { background: rgba(0, 191, 255, 0.1); }
   </style>
@@ -102,7 +106,7 @@
       if (!gameData.startPos) {
         gameData.startPos = { x: xPercent, y: yPercent };
         addMarker(xPercent, yPercent, 'start-marker', 'S', 'start');
-        resetStartBtn.style.display = 'inline-block'; // Показываем кнопку сброса
+        resetStartBtn.style.display = 'inline-block';
       } else {
         taskCounter++;
         gameData.tasks.push({ x: xPercent, y: yPercent, id: taskCounter });
@@ -137,12 +141,21 @@
         <button class="delete-task-btn" onclick="deleteTask(${id})" title="Удалить звезду">✖</button>
         <input type="text" class="task-q" placeholder="Вопрос (например: 2 + 2 = ?)">
         <div class="opts-container" id="opts-${id}">
-          <input type="text" class="task-opt" placeholder="Вариант 1">
-          <input type="text" class="task-opt" placeholder="Вариант 2">
-          <input type="text" class="task-opt" placeholder="Вариант 3">
+          <div class="opt-wrapper">
+            <input type="text" class="task-opt" placeholder="Вариант 1">
+            <button class="delete-opt-btn" onclick="this.parentElement.remove()" title="Удалить вариант">✖</button>
+          </div>
+          <div class="opt-wrapper">
+            <input type="text" class="task-opt" placeholder="Вариант 2">
+            <button class="delete-opt-btn" onclick="this.parentElement.remove()" title="Удалить вариант">✖</button>
+          </div>
+          <div class="opt-wrapper">
+            <input type="text" class="task-opt" placeholder="Вариант 3">
+            <button class="delete-opt-btn" onclick="this.parentElement.remove()" title="Удалить вариант">✖</button>
+          </div>
         </div>
         <button class="add-opt-btn" onclick="addOptionToTask(${id})">+ Добавить вариант ответа</button>
-        <input type="text" class="task-correct" placeholder="ПРАВИЛЬНЫЙ вариант (точное совпадение)" style="border-color: #00ff00;">
+        <input type="text" class="task-correct" placeholder="ПРАВИЛЬНЫЙ вариант (точное совпадение с одним из вариантов)" style="border-color: #00ff00;">
       `;
       tasksPanel.appendChild(card);
     }
@@ -181,11 +194,10 @@
       const newIndex = container.children.length + 1;
       
       const wrapper = document.createElement('div');
-      wrapper.style.display = 'flex';
-      wrapper.style.gap = '5px';
+      wrapper.className = 'opt-wrapper';
       
       wrapper.innerHTML = `
-        <input type="text" class="task-opt" placeholder="Вариант ${newIndex}" style="margin-bottom: 0;">
+        <input type="text" class="task-opt" placeholder="Вариант ${newIndex}">
         <button class="delete-opt-btn" onclick="this.parentElement.remove()" title="Удалить вариант">✖</button>
       `;
       container.appendChild(wrapper);
@@ -218,6 +230,7 @@
                              .map(input => input.value.trim())
                              .filter(Boolean);
 
+        // Если вариантов меньше двух, блокируем генерацию
         if (!q || !correct || options.length < 2) {
           formsValid = false;
         }
@@ -228,7 +241,7 @@
       });
 
       if (!formsValid) {
-        return alert('Заполните все задания! Минимум 2 варианта ответа и указан правильный.');
+        return alert('Заполните все задания! В каждом вопросе должно быть минимум 2 варианта ответа и указан правильный.');
       }
 
       const encodedData = btoa(encodeURIComponent(JSON.stringify(gameData)));
