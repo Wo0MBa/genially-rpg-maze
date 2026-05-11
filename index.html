@@ -17,13 +17,21 @@
     #bg-preview { width: 100%; display: block; border-radius: 8px; }
     
     .marker { position: absolute; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; font-weight: bold; color: black; border-radius: 50%; border: 2px solid white; pointer-events: none; }
-    .start-marker { width: 30px; height: 30px; background: #00ff00; }
-    .star-marker { width: 25px; height: 25px; background: gold; }
+    .start-marker { width: 30px; height: 30px; background: #00ff00; z-index: 10;}
+    .star-marker { width: 25px; height: 25px; background: gold; z-index: 10;}
 
     #tasks-panel { display: flex; flex-direction: column; gap: 15px; }
-    .task-card { background: rgba(0, 191, 255, 0.1); border: 1px solid #00bfff; padding: 15px; border-radius: 8px; position: relative; }
-    .task-badge { position: absolute; top: -10px; left: -10px; background: gold; color: black; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; }
+    .task-card { background: rgba(0, 191, 255, 0.1); border: 1px solid #00bfff; padding: 15px; border-radius: 8px; position: relative; padding-top: 25px; }
+    .task-badge { position: absolute; top: -10px; left: -10px; background: gold; color: black; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; z-index: 5;}
     
+    /* Кнопка удаления ЗАДАНИЯ (в углу) */
+    .delete-task-btn { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; margin: 0; padding: 0; background: #dc3545; color: white; border-radius: 5px; font-size: 16px; cursor: pointer; border: none; transition: 0.2s; display: flex; justify-content: center; align-items: center; }
+    .delete-task-btn:hover { background: #c82333; transform: scale(1.1); }
+
+    /* Кнопка удаления ДОП ВАРИАНТА (в линию) */
+    .delete-opt-btn { width: 44px; height: 44px; background: #dc3545; color: white; border-radius: 8px; font-size: 16px; cursor: pointer; border: none; transition: 0.2s; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+    .delete-opt-btn:hover { background: #c82333; transform: scale(1.1); }
+
     .opts-container { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
     .add-opt-btn { background: transparent; border: 1px dashed #00bfff; color: #00bfff; padding: 8px; margin-bottom: 10px; }
     .add-opt-btn:hover { background: rgba(0, 191, 255, 0.1); }
@@ -41,7 +49,11 @@
     <button id="load-bg">Загрузить фон</button>
 
     <h3>2. Расстановка точек</h3>
-    <p style="color: #aaa;">Первый клик: <b>СТАРТ</b> (зеленый). Следующие: <b>ЗВЕЗДЫ</b> (желтые).</p>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <p style="color: #aaa; margin: 0;">Первый клик: <b>СТАРТ</b> (зеленый). Следующие: <b>ЗВЕЗДЫ</b> (желтые).</p>
+      <button id="reset-start-btn" style="width: auto; padding: 8px 15px; background: #dc3545; display: none; margin: 0;">Сбросить СТАРТ</button>
+    </div>
+    
     <div id="preview-area" style="display: none;">
       <img id="bg-preview" src="" alt="Фон">
     </div>
@@ -63,6 +75,7 @@
     const bgPreview = document.getElementById('bg-preview');
     const previewArea = document.getElementById('preview-area');
     const tasksPanel = document.getElementById('tasks-panel');
+    const resetStartBtn = document.getElementById('reset-start-btn');
 
     document.getElementById('load-bg').addEventListener('click', () => {
       const url = document.getElementById('bg-url').value;
@@ -73,6 +86,14 @@
       }
     });
 
+    // Сброс стартовой позиции
+    resetStartBtn.addEventListener('click', () => {
+      gameData.startPos = null;
+      const startMarker = document.querySelector('.start-marker');
+      if (startMarker) startMarker.remove();
+      resetStartBtn.style.display = 'none';
+    });
+
     previewArea.addEventListener('click', (e) => {
       const rect = bgPreview.getBoundingClientRect();
       const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
@@ -80,18 +101,24 @@
 
       if (!gameData.startPos) {
         gameData.startPos = { x: xPercent, y: yPercent };
-        addMarker(xPercent, yPercent, 'start-marker', 'S');
+        addMarker(xPercent, yPercent, 'start-marker', 'S', 'start');
+        resetStartBtn.style.display = 'inline-block'; // Показываем кнопку сброса
       } else {
         taskCounter++;
         gameData.tasks.push({ x: xPercent, y: yPercent, id: taskCounter });
-        addMarker(xPercent, yPercent, 'star-marker', taskCounter);
+        addMarker(xPercent, yPercent, 'star-marker', taskCounter, taskCounter);
         createTaskForm(taskCounter);
+        updateNumbers();
       }
     });
 
-    function addMarker(x, y, className, text) {
+    function addMarker(x, y, className, text, id) {
       const marker = document.createElement('div');
       marker.className = `marker ${className}`;
+      if (className === 'star-marker') {
+        marker.classList.add('task-marker');
+        marker.id = `marker-${id}`;
+      }
       marker.style.left = `${x}%`;
       marker.style.top = `${y}%`;
       marker.innerText = text;
@@ -105,9 +132,9 @@
       card.className = 'task-card';
       card.id = `task-form-${id}`;
       
-      // Изначально 3 варианта, но можно добавить еще
       card.innerHTML = `
         <div class="task-badge">${id}</div>
+        <button class="delete-task-btn" onclick="deleteTask(${id})" title="Удалить звезду">✖</button>
         <input type="text" class="task-q" placeholder="Вопрос (например: 2 + 2 = ?)">
         <div class="opts-container" id="opts-${id}">
           <input type="text" class="task-opt" placeholder="Вариант 1">
@@ -115,20 +142,53 @@
           <input type="text" class="task-opt" placeholder="Вариант 3">
         </div>
         <button class="add-opt-btn" onclick="addOptionToTask(${id})">+ Добавить вариант ответа</button>
-        <input type="text" class="task-correct" placeholder="ПРАВИЛЬНЫЙ вариант (точное совпадение с одним из вариантов сверху)" style="border-color: #00ff00;">
+        <input type="text" class="task-correct" placeholder="ПРАВИЛЬНЫЙ вариант (точное совпадение)" style="border-color: #00ff00;">
       `;
       tasksPanel.appendChild(card);
     }
 
-    // Функция для добавления новых полей ввода в конкретное задание
+    window.deleteTask = function(id) {
+      const form = document.getElementById(`task-form-${id}`);
+      if (form) form.remove();
+
+      const marker = document.getElementById(`marker-${id}`);
+      if (marker) marker.remove();
+
+      gameData.tasks = gameData.tasks.filter(t => t.id !== id);
+      updateNumbers();
+
+      if (gameData.tasks.length === 0) {
+        document.getElementById('no-tasks-msg').style.display = 'block';
+      }
+    };
+
+    function updateNumbers() {
+      const cards = document.querySelectorAll('.task-card');
+      const markers = document.querySelectorAll('.task-marker');
+
+      cards.forEach((card, index) => {
+        const badge = card.querySelector('.task-badge');
+        if (badge) badge.innerText = index + 1;
+      });
+
+      markers.forEach((marker, index) => {
+        marker.innerText = index + 1;
+      });
+    }
+
     window.addOptionToTask = function(id) {
       const container = document.getElementById(`opts-${id}`);
       const newIndex = container.children.length + 1;
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'task-opt';
-      input.placeholder = `Вариант ${newIndex}`;
-      container.appendChild(input);
+      
+      const wrapper = document.createElement('div');
+      wrapper.style.display = 'flex';
+      wrapper.style.gap = '5px';
+      
+      wrapper.innerHTML = `
+        <input type="text" class="task-opt" placeholder="Вариант ${newIndex}" style="margin-bottom: 0;">
+        <button class="delete-opt-btn" onclick="this.parentElement.remove()" title="Удалить вариант">✖</button>
+      `;
+      container.appendChild(wrapper);
     };
 
     document.getElementById('generate-btn').addEventListener('click', () => {
@@ -142,9 +202,15 @@
         return alert('Загрузите фон и укажите хотя бы точку старта!');
       }
 
+      if (gameData.tasks.length === 0) {
+        return alert('Поставьте хотя бы одну звезду с заданием!');
+      }
+
       let formsValid = true;
       gameData.tasks.forEach((task) => {
         const form = document.getElementById(`task-form-${task.id}`);
+        if (!form) return;
+
         const q = form.querySelector('.task-q').value;
         const correct = form.querySelector('.task-correct').value;
         
