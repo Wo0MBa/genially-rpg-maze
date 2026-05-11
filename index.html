@@ -6,20 +6,31 @@
   <title>Генератор Лабиринта Genially</title>
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #0c1427; color: #e0e0e0; padding: 20px; }
-    .container { max-width: 800px; margin: 0 auto; background: rgba(0, 0, 0, 0.8); padding: 20px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+    .container { max-width: 900px; margin: 0 auto; background: rgba(0, 0, 0, 0.8); padding: 20px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
     h1 { color: #00bfff; text-align: center; }
-    input, button, textarea { width: 100%; margin-bottom: 15px; padding: 10px; border-radius: 8px; border: 1px solid #00bfff; background: rgba(0,0,0,0.3); color: white; }
-    button { background: #00bfff; cursor: pointer; font-weight: bold; border: none; transition: 0.3s; }
+    h3 { border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 30px; }
+    input[type="url"], input[type="text"], textarea { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 8px; border: 1px solid #00bfff; background: rgba(0,0,0,0.3); color: white; box-sizing: border-box; }
+    button { background: #00bfff; color: white; padding: 12px; cursor: pointer; font-weight: bold; border: none; border-radius: 8px; transition: 0.3s; width: 100%; }
     button:hover { background: #008cba; }
+    
     #preview-area { position: relative; display: inline-block; width: 100%; border: 2px dashed #555; margin-bottom: 20px; cursor: crosshair; }
     #bg-preview { width: 100%; display: block; border-radius: 8px; }
-    .star-marker { position: absolute; width: 20px; height: 20px; background: gold; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid white; }
-    .start-marker { background: #00ff00; }
+    
+    .marker { position: absolute; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; font-weight: bold; color: black; border-radius: 50%; border: 2px solid white; pointer-events: none; }
+    .start-marker { width: 30px; height: 30px; background: #00ff00; }
+    .star-marker { width: 25px; height: 25px; background: gold; }
+
+    /* Панель задач */
+    #tasks-panel { display: flex; flex-direction: column; gap: 15px; }
+    .task-card { background: rgba(0, 191, 255, 0.1); border: 1px solid #00bfff; padding: 15px; border-radius: 8px; position: relative; }
+    .task-badge { position: absolute; top: -10px; left: -10px; background: gold; color: black; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; }
+    .task-row { display: flex; gap: 10px; }
+    .task-row input { margin-bottom: 0; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Создание Лабиринта</h1>
+    <h1>Генератор Игры-Лабиринта</h1>
     
     <h3>1. Настройки графики</h3>
     <input type="url" id="bg-url" placeholder="URL фона (лабиринта)">
@@ -29,24 +40,31 @@
     <button id="load-bg">Загрузить фон</button>
 
     <h3>2. Расстановка точек</h3>
-    <p style="font-size: 0.9em; color: #aaa;">Первый клик задает <b>СТАРТ</b> (зеленый). Последующие клики создают <b>ЗВЕЗДЫ</b> (желтые).</p>
+    <p style="color: #aaa;">Первый клик: <b>СТАРТ</b> (зеленый). Следующие клики: <b>ЗВЕЗДЫ</b> (желтые).</p>
     <div id="preview-area" style="display: none;">
       <img id="bg-preview" src="" alt="Фон">
     </div>
 
-    <h3>3. Генерация кода</h3>
-    <button id="generate-btn">Создать iframe для Genially</button>
-    <textarea id="iframe-code" rows="5" readonly></textarea>
+    <h3>3. Задания (заполняются автоматически после кликов)</h3>
+    <div id="tasks-panel">
+      <!-- Сюда будут добавляться формы для вопросов -->
+      <p id="no-tasks-msg" style="color: #666; font-style: italic;">Кликните по фону, чтобы добавить звезду с заданием...</p>
+    </div>
+
+    <h3>4. Финал</h3>
+    <button id="generate-btn" style="margin-top: 15px; background: #00cc66;">Сгенерировать код для Genially</button>
+    <textarea id="iframe-code" rows="5" readonly style="margin-top: 15px;"></textarea>
   </div>
 
   <script>
-    let gameData = {
-      bg: '', chars: [], startPos: null, tasks: []
-    };
+    let gameData = { bg: '', chars: [], startPos: null, tasks: [] };
+    let taskCounter = 0;
 
     const bgPreview = document.getElementById('bg-preview');
     const previewArea = document.getElementById('preview-area');
+    const tasksPanel = document.getElementById('tasks-panel');
 
+    // Загрузка фона
     document.getElementById('load-bg').addEventListener('click', () => {
       const url = document.getElementById('bg-url').value;
       if(url) {
@@ -56,37 +74,58 @@
       }
     });
 
+    // Клик по картинке
     previewArea.addEventListener('click', (e) => {
-      // Вычисляем проценты, чтобы координаты были адаптивными
       const rect = bgPreview.getBoundingClientRect();
       const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
       const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
 
       if (!gameData.startPos) {
-        // Устанавливаем точку старта
         gameData.startPos = { x: xPercent, y: yPercent };
-        addMarker(xPercent, yPercent, 'start-marker');
+        addMarker(xPercent, yPercent, 'start-marker', 'S');
       } else {
-        // Добавляем задание
-        const question = prompt("Введите текст вопроса:");
-        if (!question) return;
-        const options = prompt("Введите варианты ответа через запятую (например: Да,Нет,Не знаю):").split(',');
-        const correct = prompt(`Введите ПРАВИЛЬНЫЙ вариант из перечисленных: \n(${options.join(', ')})`);
+        taskCounter++;
         
-        gameData.tasks.push({ x: xPercent, y: yPercent, question, options, correct });
-        addMarker(xPercent, yPercent, 'star-marker');
+        // Создаем временный объект в массиве, чтобы застолбить координаты
+        gameData.tasks.push({ x: xPercent, y: yPercent, id: taskCounter });
+        
+        addMarker(xPercent, yPercent, 'star-marker', taskCounter);
+        createTaskForm(taskCounter);
       }
     });
 
-    function addMarker(x, y, className) {
+    function addMarker(x, y, className, text) {
       const marker = document.createElement('div');
-      marker.className = `star-marker ${className}`;
+      marker.className = `marker ${className}`;
       marker.style.left = `${x}%`;
       marker.style.top = `${y}%`;
+      marker.innerText = text;
       previewArea.appendChild(marker);
     }
 
+    function createTaskForm(id) {
+      document.getElementById('no-tasks-msg').style.display = 'none';
+      
+      const card = document.createElement('div');
+      card.className = 'task-card';
+      card.id = `task-form-${id}`;
+      
+      card.innerHTML = `
+        <div class="task-badge">${id}</div>
+        <input type="text" class="task-q" placeholder="Вопрос (например: 2 + 2 = ?)">
+        <div class="task-row">
+          <input type="text" class="task-opt" placeholder="Вариант 1">
+          <input type="text" class="task-opt" placeholder="Вариант 2">
+          <input type="text" class="task-opt" placeholder="Вариант 3">
+        </div>
+        <input type="text" class="task-correct" placeholder="ПРАВИЛЬНЫЙ вариант (впишите сюда текст правильного ответа)" style="border-color: #00ff00;">
+      `;
+      tasksPanel.appendChild(card);
+    }
+
+    // Генерация iframe
     document.getElementById('generate-btn').addEventListener('click', () => {
+      // Собираем персонажей
       gameData.chars = [
         document.getElementById('char1-url').value,
         document.getElementById('char2-url').value,
@@ -97,9 +136,33 @@
         return alert('Загрузите фон и укажите хотя бы точку старта!');
       }
 
-      // Кодируем данные в Base64 с поддержкой кириллицы
+      // Собираем данные из форм заданий
+      let formsValid = true;
+      gameData.tasks.forEach((task) => {
+        const form = document.getElementById(`task-form-${task.id}`);
+        const q = form.querySelector('.task-q').value;
+        const correct = form.querySelector('.task-correct').value;
+        
+        // Собираем только заполненные варианты ответа
+        const options = Array.from(form.querySelectorAll('.task-opt'))
+                             .map(input => input.value.trim())
+                             .filter(Boolean);
+
+        if (!q || !correct || options.length === 0) {
+          formsValid = false;
+        }
+
+        task.question = q;
+        task.options = options;
+        task.correct = correct;
+      });
+
+      if (!formsValid) {
+        return alert('Пожалуйста, заполните все поля в заданиях (вопрос, варианты и правильный ответ).');
+      }
+
+      // Кодируем
       const encodedData = btoa(encodeURIComponent(JSON.stringify(gameData)));
-      
       const currentUrl = window.location.href.replace(/\/[^\/]*$/, '/');
       const widgetUrl = `${currentUrl}maze-widget.html?data=${encodedData}`;
       
@@ -108,7 +171,10 @@
       textarea.value = iframeStr;
       
       navigator.clipboard.writeText(iframeStr);
-      alert('Код скопирован!');
+      
+      const btn = document.getElementById('generate-btn');
+      btn.innerText = '✅ Код скопирован в буфер обмена!';
+      setTimeout(() => btn.innerText = 'Сгенерировать код для Genially', 2000);
     });
   </script>
 </body>
