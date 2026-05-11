@@ -1,211 +1,115 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPG Maze Generator</title>
-    <style>
-        :root { --primary: #00bfff; --dark: #1a1f33; }
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background: #f0f4f8; color: #333; margin: 0; display: flex; height: 100vh;
-        }
-        #sidebar {
-            width: 350px; background: white; padding: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-            overflow-y: auto; z-index: 10;
-        }
-        #preview-container {
-            flex-grow: 1; display: flex; align-items: center; justify-content: center;
-            background: #cbd5e0; position: relative; overflow: hidden;
-        }
-        #maze-preview {
-            max-width: 90%; max-height: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            cursor: crosshair; position: relative;
-        }
-        .marker {
-            position: absolute; width: 30px; height: 30px; background: gold;
-            border-radius: 50%; border: 2px solid black; transform: translate(-50%, -50%);
-            display: flex; align-items: center; justify-content: center; font-weight: bold;
-            font-size: 12px; pointer-events: none;
-        }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px; }
-        input, textarea, select {
-            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;
-        }
-        button {
-            width: 100%; padding: 12px; background: var(--primary); color: white;
-            border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px;
-        }
-        button.secondary { background: #4a5568; }
-        .star-task {
-            background: #f7fafc; padding: 10px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--primary);
-        }
-        #final-code {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none;
-            align-items: center; justify-content: center; z-index: 1000;
-        }
-        .modal { background: white; padding: 30px; border-radius: 20px; width: 500px; max-width: 90%; }
-        textarea#iframe-output { height: 150px; font-family: monospace; font-size: 12px; margin-top: 10px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Генератор Лабиринта Genially</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #0c1427; color: #e0e0e0; padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; background: rgba(0, 0, 0, 0.8); padding: 20px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+    h1 { color: #00bfff; text-align: center; }
+    input, button, textarea { width: 100%; margin-bottom: 15px; padding: 10px; border-radius: 8px; border: 1px solid #00bfff; background: rgba(0,0,0,0.3); color: white; }
+    button { background: #00bfff; cursor: pointer; font-weight: bold; border: none; transition: 0.3s; }
+    button:hover { background: #008cba; }
+    #preview-area { position: relative; display: inline-block; width: 100%; border: 2px dashed #555; margin-bottom: 20px; cursor: crosshair; }
+    #bg-preview { width: 100%; display: block; border-radius: 8px; }
+    .star-marker { position: absolute; width: 20px; height: 20px; background: gold; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid white; }
+    .start-marker { background: #00ff00; }
+  </style>
 </head>
 <body>
-
-<div id="sidebar">
-    <h1>RPG Maze Gen</h1>
-    <p style="font-size: 12px; color: #666;">1. Вставь ссылки на графику<br>2. Кликни по карте, чтобы добавить звезду<br>3. Настрой вопросы</p>
+  <div class="container">
+    <h1>Создание Лабиринта</h1>
     
-    <div class="form-group">
-        <label>URL Лабиринта (фон):</label>
-        <input type="url" id="bg-url" placeholder="https://..." onchange="updatePreview()">
-    </div>
-    
-    <div class="form-group">
-        <label>Герои (3 ссылки через запятую):</label>
-        <input type="text" id="chars-urls" value="https://cdn-icons-png.flaticon.com/512/1004/1004831.png,https://cdn-icons-png.flaticon.com/512/1004/1004819.png,https://cdn-icons-png.flaticon.com/512/1004/1004836.png">
-    </div>
+    <h3>1. Настройки графики</h3>
+    <input type="url" id="bg-url" placeholder="URL фона (лабиринта)">
+    <input type="url" id="char1-url" placeholder="URL персонажа 1">
+    <input type="url" id="char2-url" placeholder="URL персонажа 2">
+    <input type="url" id="char3-url" placeholder="URL персонажа 3">
+    <button id="load-bg">Загрузить фон</button>
 
-    <div class="form-group">
-        <label>Стартовая точка (X, Y в %):</label>
-        <div style="display: flex; gap: 5px;">
-            <input type="number" id="start-x" value="50">
-            <input type="number" id="start-y" value="95">
-        </div>
+    <h3>2. Расстановка точек</h3>
+    <p style="font-size: 0.9em; color: #aaa;">Первый клик задает <b>СТАРТ</b> (зеленый). Последующие клики создают <b>ЗВЕЗДЫ</b> (желтые).</p>
+    <div id="preview-area" style="display: none;">
+      <img id="bg-preview" src="" alt="Фон">
     </div>
 
-    <div id="tasks-list">
-        <!-- Сюда будут добавляться задания -->
-    </div>
+    <h3>3. Генерация кода</h3>
+    <button id="generate-btn">Создать iframe для Genially</button>
+    <textarea id="iframe-code" rows="5" readonly></textarea>
+  </div>
 
-    <button onclick="generateIframe()">ПОЛУЧИТЬ КОД ДЛЯ GENIALLY</button>
-</div>
+  <script>
+    let gameData = {
+      bg: '', chars: [], startPos: null, tasks: []
+    };
 
-<div id="preview-container">
-    <div id="maze-preview-wrapper" style="position: relative; display: inline-block;">
-        <img id="maze-preview" src="https://via.placeholder.com/800x600?text=Paste+Maze+URL+in+Sidebar" onclick="addStar(event)">
-        <div id="markers-layer"></div>
-    </div>
-</div>
+    const bgPreview = document.getElementById('bg-preview');
+    const previewArea = document.getElementById('preview-area');
 
-<div id="final-code">
-    <div class="modal">
-        <h3>Твой код готов!</h3>
-        <p>Скопируй и вставь в Genially через Вставка -> Другое (iframe):</p>
-        <textarea id="iframe-output" readonly></textarea>
-        <button onclick="document.getElementById('final-code').style.display='none'">Закрыть</button>
-    </div>
-</div>
+    document.getElementById('load-bg').addEventListener('click', () => {
+      const url = document.getElementById('bg-url').value;
+      if(url) {
+        bgPreview.src = url;
+        gameData.bg = url;
+        previewArea.style.display = 'inline-block';
+      }
+    });
 
-<script>
-    let stars = [];
+    previewArea.addEventListener('click', (e) => {
+      // Вычисляем проценты, чтобы координаты были адаптивными
+      const rect = bgPreview.getBoundingClientRect();
+      const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
+      const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
 
-    function updatePreview() {
-        const url = document.getElementById('bg-url').value;
-        if (url) document.getElementById('maze-preview').src = url;
-    }
-
-    function addStar(e) {
-        const rect = e.target.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
-        const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+      if (!gameData.startPos) {
+        // Устанавливаем точку старта
+        gameData.startPos = { x: xPercent, y: yPercent };
+        addMarker(xPercent, yPercent, 'start-marker');
+      } else {
+        // Добавляем задание
+        const question = prompt("Введите текст вопроса:");
+        if (!question) return;
+        const options = prompt("Введите варианты ответа через запятую (например: Да,Нет,Не знаю):").split(',');
+        const correct = prompt(`Введите ПРАВИЛЬНЫЙ вариант из перечисленных: \n(${options.join(', ')})`);
         
-        const starIndex = stars.length;
-        stars.push({
-            x: x, y: y,
-            task: { q: 'Твой вопрос?', o: ['Вариант 1', 'Вариант 2', 'Вариант 3'], a: 0 }
-        });
+        gameData.tasks.push({ x: xPercent, y: yPercent, question, options, correct });
+        addMarker(xPercent, yPercent, 'star-marker');
+      }
+    });
 
-        renderTasks();
-        renderMarkers();
+    function addMarker(x, y, className) {
+      const marker = document.createElement('div');
+      marker.className = `star-marker ${className}`;
+      marker.style.left = `${x}%`;
+      marker.style.top = `${y}%`;
+      previewArea.appendChild(marker);
     }
 
-    function renderMarkers() {
-        const layer = document.getElementById('markers-layer');
-        layer.innerHTML = '';
-        stars.forEach((s, i) => {
-            const m = document.createElement('div');
-            m.className = 'marker';
-            m.style.left = s.x + '%';
-            m.style.top = s.y + '%';
-            m.innerText = i + 1;
-            layer.appendChild(m);
-        });
-    }
+    document.getElementById('generate-btn').addEventListener('click', () => {
+      gameData.chars = [
+        document.getElementById('char1-url').value,
+        document.getElementById('char2-url').value,
+        document.getElementById('char3-url').value
+      ].filter(Boolean);
 
-    function renderTasks() {
-        const list = document.getElementById('tasks-list');
-        list.innerHTML = '<h3>Задания:</h3>';
-        stars.forEach((s, i) => {
-            const div = document.createElement('div');
-            div.className = 'star-task';
-            div.innerHTML = `
-                <label>Звезда №${i+1} (X:${s.x}%, Y:${s.y}%)</label>
-                <input type="text" value="${s.task.q}" onchange="updateTask(${i}, 'q', this.value)" placeholder="Вопрос">
-                <input type="text" value="${s.task.o.join(', ')}" onchange="updateTask(${i}, 'o', this.value)" placeholder="Опции через запятую" style="margin-top:5px">
-                <select onchange="updateTask(${i}, 'a', this.value)" style="margin-top:5px">
-                    ${s.task.o.map((_, idx) => `<option value="${idx}" ${s.task.a == idx ? 'selected' : ''}>Прав. ответ №${idx+1}</option>`).join('')}
-                </select>
-                <button class="secondary" onclick="removeStar(${i})" style="padding: 5px; font-size: 10px;">Удалить</button>
-            `;
-            list.appendChild(div);
-        });
-    }
+      if (!gameData.bg || !gameData.startPos) {
+        return alert('Загрузите фон и укажите хотя бы точку старта!');
+      }
 
-    function updateTask(index, field, value) {
-        if (field === 'q') stars[index].task.q = value;
-        if (field === 'o') stars[index].task.o = value.split(',').map(v => v.trim());
-        if (field === 'a') stars[index].task.a = parseInt(value);
-        renderTasks();
-    }
-
-    function removeStar(index) {
-        stars.splice(index, 1);
-        renderTasks();
-        renderMarkers();
-    }
-
-    function generateIframe() {
-        const data = {
-            bg: document.getElementById('bg-url').value,
-            chars: document.getElementById('chars-urls').value.split(',').map(v => v.trim()),
-            startX: document.getElementById('start-x').value,
-            startY: document.getElementById('start-y').value,
-            stars: stars
-        };
-
-        const json = JSON.stringify(data);
-        const lzw = compress(json);
-        const baseUrl = "https://wo0mba.github.io/genially-rpg-maze/game.html";
-        const finalUrl = `${baseUrl}?z=${encodeURIComponent(lzw)}`;
-        
-        const iframeCode = `<iframe src="${finalUrl}" width="100%" height="600" frameborder="0" style="border:none;width:100%;height:600px;overflow:hidden;" allow="autoplay"></iframe>`;
-        
-        document.getElementById('iframe-output').value = iframeCode;
-        document.getElementById('final-code').style.display = 'flex';
-        
-        const textarea = document.getElementById('iframe-output');
-        textarea.select();
-        document.execCommand('copy');
-        alert('Код сжат и скопирован!');
-    }
-
-    // LZW Compression
-    function compress(uncompressed) {
-        let dictionary = {};
-        for (let i = 0; i < 256; i++) dictionary[String.fromCharCode(i)] = i;
-        let word = "", result = [], dictSize = 256;
-        for (let i = 0; i < uncompressed.length; i++) {
-            let c = uncompressed.charAt(i), wc = word + c;
-            if (dictionary.hasOwnProperty(wc)) word = wc;
-            else {
-                result.push(dictionary[word]);
-                dictionary[wc] = dictSize++;
-                word = String(c);
-            }
-        }
-        if (word !== "") result.push(dictionary[word]);
-        return result.map(x => String.fromCharCode(x)).join("");
-    }
-</script>
+      // Кодируем данные в Base64 с поддержкой кириллицы
+      const encodedData = btoa(encodeURIComponent(JSON.stringify(gameData)));
+      
+      const currentUrl = window.location.href.replace(/\/[^\/]*$/, '/');
+      const widgetUrl = `${currentUrl}maze-widget.html?data=${encodedData}`;
+      
+      const iframeStr = `<iframe src="${widgetUrl}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
+      const textarea = document.getElementById('iframe-code');
+      textarea.value = iframeStr;
+      
+      navigator.clipboard.writeText(iframeStr);
+      alert('Код скопирован!');
+    });
+  </script>
 </body>
 </html>
