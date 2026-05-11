@@ -21,23 +21,23 @@
     .star-marker { width: 25px; height: 25px; background: gold; z-index: 10;}
 
     #tasks-panel { display: flex; flex-direction: column; gap: 15px; }
-    .task-card { background: rgba(0, 191, 255, 0.1); border: 1px solid #00bfff; padding: 15px; border-radius: 8px; position: relative; padding-top: 25px; }
-    .task-badge { position: absolute; top: -10px; left: -10px; background: gold; color: black; width: 25px; height: 25px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; z-index: 5;}
+    .task-card { background: rgba(0, 191, 255, 0.1); border: 1px solid #00bfff; padding: 15px; border-radius: 8px; position: relative; padding-top: 35px; }
+    .task-badge { position: absolute; top: -10px; left: -10px; background: gold; color: black; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; z-index: 5;}
     
-    /* Кнопка удаления ЗАДАНИЯ (в углу) */
-    .delete-task-btn { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; margin: 0; padding: 0; background: #dc3545; color: white; border-radius: 5px; font-size: 16px; cursor: pointer; border: none; transition: 0.2s; display: flex; justify-content: center; align-items: center; }
+    /* Кнопка удаления ЗАДАНИЯ */
+    .delete-task-btn { position: absolute; top: 10px; right: 10px; width: 35px; height: 35px; padding: 0; background: #dc3545; color: white; border-radius: 5px; font-size: 16px; cursor: pointer; border: none; transition: 0.2s; }
     .delete-task-btn:hover { background: #c82333; transform: scale(1.1); }
 
-    /* Обертка для вариантов ответа с крестиком */
-    .opt-wrapper { display: flex; gap: 8px; margin-bottom: 8px; }
-    .opt-wrapper input { margin-bottom: 0 !important; }
+    /* Обертка для вариантов ответа с крестиком (исправлена верстка) */
+    .opt-wrapper { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .opt-wrapper input { flex: 1; margin-bottom: 0 !important; }
 
-    /* Кнопка удаления ДОП ВАРИАНТА (в линию) */
+    /* Кнопка удаления ДОП ВАРИАНТА */
     .delete-opt-btn { width: 44px; height: 44px; background: #dc3545; color: white; border-radius: 8px; font-size: 16px; cursor: pointer; border: none; transition: 0.2s; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
     .delete-opt-btn:hover { background: #c82333; transform: scale(1.1); }
 
-    .opts-container { display: flex; flex-direction: column; margin-bottom: 10px; }
-    .add-opt-btn { background: transparent; border: 1px dashed #00bfff; color: #00bfff; padding: 8px; margin-bottom: 10px; }
+    .opts-container { display: flex; flex-direction: column; }
+    .add-opt-btn { background: transparent; border: 1px dashed #00bfff; color: #00bfff; padding: 8px; margin-bottom: 15px; }
     .add-opt-btn:hover { background: rgba(0, 191, 255, 0.1); }
   </style>
 </head>
@@ -82,15 +82,13 @@
     const resetStartBtn = document.getElementById('reset-start-btn');
 
     document.getElementById('load-bg').addEventListener('click', () => {
-      const url = document.getElementById('bg-url').value;
-      if(url) {
-        bgPreview.src = url;
-        gameData.bg = url;
-        previewArea.style.display = 'inline-block';
-      }
+      // Если фон не указан, грузим дефолтную картинку-заглушку, чтобы генератор не ломался
+      const url = document.getElementById('bg-url').value || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200';
+      bgPreview.src = url;
+      gameData.bg = url;
+      previewArea.style.display = 'inline-block';
     });
 
-    // Сброс стартовой позиции
     resetStartBtn.addEventListener('click', () => {
       gameData.startPos = null;
       const startMarker = document.querySelector('.start-marker');
@@ -138,42 +136,67 @@
       
       card.innerHTML = `
         <div class="task-badge">${id}</div>
-        <button class="delete-task-btn" onclick="deleteTask(${id})" title="Удалить звезду">✖</button>
+        <button type="button" class="delete-task-btn" data-id="${id}" title="Удалить звезду">✖</button>
         <input type="text" class="task-q" placeholder="Вопрос (например: 2 + 2 = ?)">
         <div class="opts-container" id="opts-${id}">
           <div class="opt-wrapper">
             <input type="text" class="task-opt" placeholder="Вариант 1">
-            <button class="delete-opt-btn" onclick="this.parentElement.remove()" title="Удалить вариант">✖</button>
+            <button type="button" class="delete-opt-btn" title="Удалить вариант">✖</button>
           </div>
           <div class="opt-wrapper">
             <input type="text" class="task-opt" placeholder="Вариант 2">
-            <button class="delete-opt-btn" onclick="this.parentElement.remove()" title="Удалить вариант">✖</button>
-          </div>
-          <div class="opt-wrapper">
-            <input type="text" class="task-opt" placeholder="Вариант 3">
-            <button class="delete-opt-btn" onclick="this.parentElement.remove()" title="Удалить вариант">✖</button>
+            <button type="button" class="delete-opt-btn" title="Удалить вариант">✖</button>
           </div>
         </div>
-        <button class="add-opt-btn" onclick="addOptionToTask(${id})">+ Добавить вариант ответа</button>
-        <input type="text" class="task-correct" placeholder="ПРАВИЛЬНЫЙ вариант (точное совпадение с одним из вариантов)" style="border-color: #00ff00;">
+        <button type="button" class="add-opt-btn" data-id="${id}">+ Добавить вариант ответа</button>
+        <input type="text" class="task-correct" placeholder="ПРАВИЛЬНЫЙ вариант (впишите точное совпадение)" style="border-color: #00ff00;">
       `;
       tasksPanel.appendChild(card);
     }
 
-    window.deleteTask = function(id) {
-      const form = document.getElementById(`task-form-${id}`);
-      if (form) form.remove();
+    // НОВАЯ НАДЕЖНАЯ ЛОГИКА УДАЛЕНИЯ (Делегирование событий)
+    tasksPanel.addEventListener('click', (e) => {
+      // 1. Удаление целого задания
+      if (e.target.classList.contains('delete-task-btn')) {
+        const id = parseInt(e.target.getAttribute('data-id'));
+        
+        // Удаляем форму
+        const form = document.getElementById(`task-form-${id}`);
+        if (form) form.remove();
+        
+        // Удаляем звезду с картинки
+        const marker = document.getElementById(`marker-${id}`);
+        if (marker) marker.remove();
+        
+        // Удаляем из данных
+        gameData.tasks = gameData.tasks.filter(t => t.id !== id);
+        updateNumbers();
 
-      const marker = document.getElementById(`marker-${id}`);
-      if (marker) marker.remove();
-
-      gameData.tasks = gameData.tasks.filter(t => t.id !== id);
-      updateNumbers();
-
-      if (gameData.tasks.length === 0) {
-        document.getElementById('no-tasks-msg').style.display = 'block';
+        if (gameData.tasks.length === 0) {
+          document.getElementById('no-tasks-msg').style.display = 'block';
+        }
       }
-    };
+
+      // 2. Удаление одного варианта ответа
+      if (e.target.classList.contains('delete-opt-btn')) {
+        e.target.closest('.opt-wrapper').remove();
+      }
+
+      // 3. Добавление нового варианта ответа
+      if (e.target.classList.contains('add-opt-btn')) {
+        const id = e.target.getAttribute('data-id');
+        const container = document.getElementById(`opts-${id}`);
+        const newIndex = container.children.length + 1;
+        
+        const wrapper = document.createElement('div');
+        wrapper.className = 'opt-wrapper';
+        wrapper.innerHTML = `
+          <input type="text" class="task-opt" placeholder="Вариант ${newIndex}">
+          <button type="button" class="delete-opt-btn" title="Удалить вариант">✖</button>
+        `;
+        container.appendChild(wrapper);
+      }
+    });
 
     function updateNumbers() {
       const cards = document.querySelectorAll('.task-card');
@@ -189,23 +212,11 @@
       });
     }
 
-    window.addOptionToTask = function(id) {
-      const container = document.getElementById(`opts-${id}`);
-      const newIndex = container.children.length + 1;
-      
-      const wrapper = document.createElement('div');
-      wrapper.className = 'opt-wrapper';
-      
-      wrapper.innerHTML = `
-        <input type="text" class="task-opt" placeholder="Вариант ${newIndex}">
-        <button class="delete-opt-btn" onclick="this.parentElement.remove()" title="Удалить вариант">✖</button>
-      `;
-      container.appendChild(wrapper);
-    };
-
     document.getElementById('generate-btn').addEventListener('click', () => {
+      // Гарантируем, что если поля пустые, подставится дефолтный Марио
+      const defaultChar = 'https://cdn-icons-png.flaticon.com/128/104/104663.png';
       gameData.chars = [
-        document.getElementById('char1-url').value,
+        document.getElementById('char1-url').value || defaultChar,
         document.getElementById('char2-url').value,
         document.getElementById('char3-url').value
       ].filter(Boolean);
@@ -230,7 +241,6 @@
                              .map(input => input.value.trim())
                              .filter(Boolean);
 
-        // Если вариантов меньше двух, блокируем генерацию
         if (!q || !correct || options.length < 2) {
           formsValid = false;
         }
