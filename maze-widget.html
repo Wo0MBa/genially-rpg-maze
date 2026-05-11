@@ -173,3 +173,206 @@
   </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
+    #game-container { position: relative; width: 100%; height: 100%; background-size: cover; background-position: center; }
+    
+    /* Счетчик в углу */
+    #score-board {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid #00bfff;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      z-index: 90;
+      box-shadow: 0 0 10px rgba(0,191,255,0.5);
+      display: none; /* Скрыт до выбора персонажа */
+    }
+
+    /* Оверлеи и модалки */
+    .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; color: white; }
+    .char-select { display: flex; gap: 20px; margin-top: 20px; flex-wrap: wrap; justify-content: center;}
+    .char-option { width: 120px; height: 120px; object-fit: contain; cursor: pointer; transition: 0.2s; background: rgba(255,255,255,0.1); border-radius: 15px; padding: 10px; border: 2px solid transparent; }
+    .char-option:hover { transform: scale(1.1); border-color: #00bfff; background: rgba(0, 191, 255, 0.2); }
+    
+    /* Игрок и Звезды */
+    .player { position: absolute; width: 60px; height: 60px; transform: translate(-50%, -50%); transition: all 1.5s linear; z-index: 50; object-fit: contain; pointer-events: none; }
+    
+    .star { position: absolute; width: 45px; height: 45px; background: #ffe600; filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.9)) drop-shadow(0 0 30px rgba(255, 215, 0, 0.6)); clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); transform: translate(-50%, -50%); cursor: pointer; z-index: 40; transition: transform 0.3s ease, filter 0.3s ease; }
+    .star:hover { transform: translate(-50%, -50%) scale(1.3); filter: drop-shadow(0 0 20px rgba(255, 255, 255, 1)); }
+    .star.completed { background: #555; filter: none; opacity: 0.5; pointer-events: none; }
+
+    /* Окно вопроса */
+    #question-modal { display: none; text-align: center; padding: 40px; background: #1a1f33; border: 2px solid #00bfff; border-radius: 15px; box-shadow: 0 0 30px rgba(0,191,255,0.4); max-width: 80%; }
+    .answers { display: flex; flex-direction: column; gap: 10px; margin-top: 30px; }
+    .answer-btn { padding: 12px; background: #00bfff; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s; }
+    .answer-btn:hover { background: #008cba; transform: translateY(-2px); }
+
+    /* Окно победы */
+    #victory-modal { display: none; text-align: center; padding: 50px; background: linear-gradient(135deg, #ffd700, #ffaa00); border-radius: 20px; box-shadow: 0 0 50px rgba(255, 215, 0, 0.8); color: #000; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    #victory-modal h1 { font-size: 3rem; margin: 0 0 10px 0; text-transform: uppercase; }
+    #victory-modal p { font-size: 1.5rem; font-weight: bold; margin: 0; }
+
+    @keyframes popIn {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-container"></div>
+  
+  <div id="score-board">⭐ 0 / 0</div>
+
+  <div id="start-screen" class="overlay">
+    <h2 style="font-size: 2rem; color: #00bfff; text-shadow: 0 0 10px rgba(0,191,255,0.5);">Выбери персонажа</h2>
+    <div class="char-select" id="char-select-container"></div>
+  </div>
+
+  <div id="question-overlay" class="overlay" style="display: none; background: rgba(0,0,0,0.8);">
+    <div id="question-modal">
+      <h2 id="q-text" style="margin-top: 0; font-size: 1.5rem;">Вопрос?</h2>
+      <div class="answers" id="q-answers"></div>
+    </div>
+    
+    <div id="victory-modal">
+      <h1>Так держать!</h1>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const rawData = urlParams.get('data');
+    
+    if (!rawData) {
+      document.body.innerHTML = "<h2 style='color:white;text-align:center;'>Нет данных для загрузки игры</h2>";
+    } else {
+      const gameData = JSON.parse(decodeURIComponent(atob(rawData)));
+      initGame(gameData);
+    }
+
+    function initGame(data) {
+      const container = document.getElementById('game-container');
+      const startScreen = document.getElementById('start-screen');
+      const charContainer = document.getElementById('char-select-container');
+      const scoreBoard = document.getElementById('score-board');
+      
+      let playerElement = null;
+      let currentTask = null;
+      
+      // Логика счета
+      let completedTasks = 0;
+      const totalTasks = data.tasks.length;
+
+      container.style.backgroundImage = `url(${data.bg})`;
+
+      // Генерация персонажей
+      data.chars.forEach(imgUrl => {
+        const img = document.createElement('img');
+        img.src = imgUrl;
+        img.className = 'char-option';
+        img.onclick = () => startGame(imgUrl);
+        charContainer.appendChild(img);
+      });
+
+      function startGame(charImgUrl) {
+        startScreen.style.display = 'none';
+        
+        // Показываем счетчик
+        scoreBoard.style.display = 'block';
+        updateScoreBoard();
+
+        playerElement = document.createElement('img');
+        playerElement.src = charImgUrl;
+        playerElement.className = 'player';
+        setPlayerPos(data.startPos.x, data.startPos.y);
+        container.appendChild(playerElement);
+
+        data.tasks.forEach((task) => {
+          const star = document.createElement('div');
+          star.className = 'star';
+          star.style.left = `${task.x}%`;
+          star.style.top = `${task.y}%`;
+          star.onclick = () => openQuestion(task, star);
+          container.appendChild(star);
+        });
+      }
+
+      function setPlayerPos(x, y) {
+        playerElement.style.left = `${x}%`;
+        playerElement.style.top = `${y}%`;
+      }
+
+      function updateScoreBoard() {
+        scoreBoard.innerHTML = `⭐ ${completedTasks} / ${totalTasks}`;
+      }
+
+      function openQuestion(task, starElement) {
+        currentTask = { ...task, element: starElement };
+        document.getElementById('q-text').innerText = task.question;
+        
+        const answersContainer = document.getElementById('q-answers');
+        answersContainer.innerHTML = '';
+        
+        task.options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.className = 'answer-btn';
+          btn.innerText = opt;
+          btn.onclick = () => checkAnswer(opt);
+          answersContainer.appendChild(btn);
+        });
+
+        document.getElementById('victory-modal').style.display = 'none';
+        document.getElementById('question-modal').style.display = 'block';
+        document.getElementById('question-overlay').style.display = 'flex';
+      }
+
+      function checkAnswer(selectedOption) {
+        if (selectedOption === currentTask.correct) {
+          // Правильный ответ
+          document.getElementById('question-overlay').style.display = 'none';
+          setPlayerPos(currentTask.x, currentTask.y);
+          currentTask.element.classList.add('completed');
+          
+          completedTasks++;
+          updateScoreBoard();
+
+          // Проверка на победу
+          if (completedTasks === totalTasks) {
+            setTimeout(() => showVictory(), 1500); // Ждем пока персонаж дойдет до последней звезды
+          }
+          
+        } else {
+          // Ошибка
+          const modal = document.getElementById('question-modal');
+          const originalHTML = modal.innerHTML;
+          
+          modal.innerHTML = '<h2 style="color: #ff3333; margin: 0;">Неверно!</h2><p>Ты возвращаешься в начало лабиринта.</p>';
+          
+          setTimeout(() => {
+            document.getElementById('question-overlay').style.display = 'none';
+            modal.innerHTML = originalHTML;
+            setPlayerPos(data.startPos.x, data.startPos.y);
+          }, 2000);
+        }
+      }
+
+      function showVictory() {
+        document.getElementById('question-modal').style.display = 'none';
+        document.getElementById('victory-modal').style.display = 'block';
+        document.getElementById('question-overlay').style.display = 'flex';
+      }
+    }
+  </script>
+</body>
+</html>
