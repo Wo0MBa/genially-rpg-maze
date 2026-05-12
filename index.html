@@ -8,7 +8,10 @@
     body { font-family: 'Segoe UI', sans-serif; background: #0c1427; color: #e0e0e0; padding: 20px; }
     .container { max-width: 900px; margin: 0 auto; background: rgba(0, 0, 0, 0.8); padding: 20px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
     h1 { color: #00bfff; text-align: center; }
-    h3 { border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 30px; }
+    
+    .section-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 30px; margin-bottom: 15px; }
+    .section-header h3 { margin: 0; border: none; padding: 0; }
+    
     input[type="url"], input[type="text"], textarea { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 8px; border: 1px solid #00bfff; background: rgba(0,0,0,0.3); color: white; box-sizing: border-box; }
     button { background: #00bfff; color: white; padding: 12px; cursor: pointer; font-weight: bold; border: none; border-radius: 8px; transition: 0.3s; width: 100%; }
     button:hover { background: #008cba; }
@@ -24,15 +27,12 @@
     .task-card { background: rgba(0, 191, 255, 0.1); border: 1px solid #00bfff; padding: 15px; border-radius: 8px; position: relative; padding-top: 35px; }
     .task-badge { position: absolute; top: -10px; left: -10px; background: gold; color: black; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; z-index: 5;}
     
-    /* Кнопка удаления ЗАДАНИЯ */
     .delete-task-btn { position: absolute; top: 10px; right: 10px; width: 35px; height: 35px; padding: 0; background: #dc3545; color: white; border-radius: 5px; font-size: 16px; cursor: pointer; border: none; transition: 0.2s; }
     .delete-task-btn:hover { background: #c82333; transform: scale(1.1); }
 
-    /* Обертка для вариантов ответа с крестиком (исправлена верстка) */
     .opt-wrapper { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
     .opt-wrapper input { flex: 1; margin-bottom: 0 !important; }
 
-    /* Кнопка удаления ДОП ВАРИАНТА */
     .delete-opt-btn { width: 44px; height: 44px; background: #dc3545; color: white; border-radius: 8px; font-size: 16px; cursor: pointer; border: none; transition: 0.2s; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
     .delete-opt-btn:hover { background: #c82333; transform: scale(1.1); }
 
@@ -45,31 +45,39 @@
   <div class="container">
     <h1>Генератор Игры-Лабиринта</h1>
     
-    <h3>1. Настройки графики</h3>
+    <div class="section-header">
+      <h3>1. Настройки графики</h3>
+    </div>
     <input type="url" id="bg-url" placeholder="URL фона (лабиринта)">
     <input type="url" id="char1-url" placeholder="URL персонажа 1">
     <input type="url" id="char2-url" placeholder="URL персонажа 2">
     <input type="url" id="char3-url" placeholder="URL персонажа 3">
     <button id="load-bg">Загрузить фон</button>
 
-    <h3>2. Расстановка точек</h3>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-      <p style="color: #aaa; margin: 0;">Первый клик: <b>СТАРТ</b> (зеленый). Следующие: <b>ЗВЕЗДЫ</b> (желтые).</p>
-      <button id="reset-start-btn" style="width: auto; padding: 8px 15px; background: #dc3545; display: none; margin: 0;">Сбросить СТАРТ</button>
+    <div class="section-header">
+      <h3>2. Расстановка точек</h3>
+      <button id="reset-start-btn" style="width: auto; padding: 6px 15px; background: #dc3545; display: none; margin: 0; font-size: 14px;">Сбросить СТАРТ</button>
     </div>
+    <p style="color: #aaa; margin-top: 0;">Первый клик: <b>СТАРТ</b> (зеленый). Следующие: <b>ЗВЕЗДЫ</b> (желтые).</p>
     
     <div id="preview-area" style="display: none;">
       <img id="bg-preview" src="" alt="Фон">
     </div>
 
-    <h3>3. Задания</h3>
+    <div class="section-header">
+      <h3>3. Задания</h3>
+      <button id="clear-all-tasks-btn" style="width: auto; padding: 6px 15px; background: #ffaa00; color: #000; display: none; margin: 0; font-size: 14px;">🗑 Очистить всё</button>
+    </div>
+    
     <div id="tasks-panel">
       <p id="no-tasks-msg" style="color: #666; font-style: italic;">Кликните по фону, чтобы добавить звезду с заданием...</p>
     </div>
 
-    <h3>4. Финал</h3>
-    <button id="generate-btn" style="margin-top: 15px; background: #00cc66;">Сгенерировать код для Genially</button>
-    <textarea id="iframe-code" rows="5" readonly style="margin-top: 15px;"></textarea>
+    <div class="section-header">
+      <h3>4. Финал</h3>
+    </div>
+    <button id="generate-btn" style="background: #00cc66;">Сгенерировать код для Genially</button>
+    <textarea id="iframe-code" rows="7" readonly style="margin-top: 15px; font-family: monospace;"></textarea>
   </div>
 
   <script>
@@ -80,9 +88,9 @@
     const previewArea = document.getElementById('preview-area');
     const tasksPanel = document.getElementById('tasks-panel');
     const resetStartBtn = document.getElementById('reset-start-btn');
+    const clearAllTasksBtn = document.getElementById('clear-all-tasks-btn');
 
     document.getElementById('load-bg').addEventListener('click', () => {
-      // Если фон не указан, грузим дефолтную картинку-заглушку, чтобы генератор не ломался
       const url = document.getElementById('bg-url').value || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200';
       bgPreview.src = url;
       gameData.bg = url;
@@ -94,6 +102,16 @@
       const startMarker = document.querySelector('.start-marker');
       if (startMarker) startMarker.remove();
       resetStartBtn.style.display = 'none';
+    });
+
+    clearAllTasksBtn.addEventListener('click', () => {
+      if (confirm('Точно удалить все звезды и задания? Фон и точка старта останутся.')) {
+        gameData.tasks = [];
+        document.querySelectorAll('.task-card').forEach(card => card.remove());
+        document.querySelectorAll('.task-marker').forEach(marker => marker.remove());
+        document.getElementById('no-tasks-msg').style.display = 'block';
+        clearAllTasksBtn.style.display = 'none';
+      }
     });
 
     previewArea.addEventListener('click', (e) => {
@@ -111,6 +129,7 @@
         addMarker(xPercent, yPercent, 'star-marker', taskCounter, taskCounter);
         createTaskForm(taskCounter);
         updateNumbers();
+        clearAllTasksBtn.style.display = 'inline-block';
       }
     });
 
@@ -140,58 +159,48 @@
         <input type="text" class="task-q" placeholder="Вопрос (например: 2 + 2 = ?)">
         <div class="opts-container" id="opts-${id}">
           <div class="opt-wrapper">
-            <input type="text" class="task-opt" placeholder="Вариант 1">
+            <input type="text" class="task-opt" placeholder="Неправильный вариант 1">
             <button type="button" class="delete-opt-btn" title="Удалить вариант">✖</button>
           </div>
           <div class="opt-wrapper">
-            <input type="text" class="task-opt" placeholder="Вариант 2">
+            <input type="text" class="task-opt" placeholder="Неправильный вариант 2">
             <button type="button" class="delete-opt-btn" title="Удалить вариант">✖</button>
           </div>
         </div>
         <button type="button" class="add-opt-btn" data-id="${id}">+ Добавить вариант ответа</button>
-        <input type="text" class="task-correct" placeholder="ПРАВИЛЬНЫЙ вариант (впишите точное совпадение)" style="border-color: #00ff00;">
+        <input type="text" class="task-correct" placeholder="ПРАВИЛЬНЫЙ вариант (впишите сюда ответ)" style="border-color: #00ff00; background: rgba(0, 255, 0, 0.1);">
       `;
       tasksPanel.appendChild(card);
     }
 
-    // НОВАЯ НАДЕЖНАЯ ЛОГИКА УДАЛЕНИЯ (Делегирование событий)
     tasksPanel.addEventListener('click', (e) => {
-      // 1. Удаление целого задания
       if (e.target.classList.contains('delete-task-btn')) {
         const id = parseInt(e.target.getAttribute('data-id'));
-        
-        // Удаляем форму
         const form = document.getElementById(`task-form-${id}`);
         if (form) form.remove();
-        
-        // Удаляем звезду с картинки
         const marker = document.getElementById(`marker-${id}`);
         if (marker) marker.remove();
-        
-        // Удаляем из данных
         gameData.tasks = gameData.tasks.filter(t => t.id !== id);
         updateNumbers();
-
+        
         if (gameData.tasks.length === 0) {
           document.getElementById('no-tasks-msg').style.display = 'block';
+          clearAllTasksBtn.style.display = 'none';
         }
       }
 
-      // 2. Удаление одного варианта ответа
       if (e.target.classList.contains('delete-opt-btn')) {
         e.target.closest('.opt-wrapper').remove();
       }
 
-      // 3. Добавление нового варианта ответа
       if (e.target.classList.contains('add-opt-btn')) {
         const id = e.target.getAttribute('data-id');
         const container = document.getElementById(`opts-${id}`);
         const newIndex = container.children.length + 1;
-        
         const wrapper = document.createElement('div');
         wrapper.className = 'opt-wrapper';
         wrapper.innerHTML = `
-          <input type="text" class="task-opt" placeholder="Вариант ${newIndex}">
+          <input type="text" class="task-opt" placeholder="Еще один вариант">
           <button type="button" class="delete-opt-btn" title="Удалить вариант">✖</button>
         `;
         container.appendChild(wrapper);
@@ -201,19 +210,16 @@
     function updateNumbers() {
       const cards = document.querySelectorAll('.task-card');
       const markers = document.querySelectorAll('.task-marker');
-
       cards.forEach((card, index) => {
         const badge = card.querySelector('.task-badge');
         if (badge) badge.innerText = index + 1;
       });
-
       markers.forEach((marker, index) => {
         marker.innerText = index + 1;
       });
     }
 
     document.getElementById('generate-btn').addEventListener('click', () => {
-      // Гарантируем, что если поля пустые, подставится дефолтный Марио
       const defaultChar = 'https://cdn-icons-png.flaticon.com/128/104/104663.png';
       gameData.chars = [
         document.getElementById('char1-url').value || defaultChar,
@@ -234,12 +240,18 @@
         const form = document.getElementById(`task-form-${task.id}`);
         if (!form) return;
 
-        const q = form.querySelector('.task-q').value;
-        const correct = form.querySelector('.task-correct').value;
+        const q = form.querySelector('.task-q').value.trim();
+        const correct = form.querySelector('.task-correct').value.trim();
         
-        const options = Array.from(form.querySelectorAll('.task-opt'))
+        let options = Array.from(form.querySelectorAll('.task-opt'))
                              .map(input => input.value.trim())
                              .filter(Boolean);
+
+        if (correct && !options.includes(correct)) {
+          options.push(correct);
+        }
+
+        options.sort(() => Math.random() - 0.5);
 
         if (!q || !correct || options.length < 2) {
           formsValid = false;
@@ -251,21 +263,31 @@
       });
 
       if (!formsValid) {
-        return alert('Заполните все задания! В каждом вопросе должно быть минимум 2 варианта ответа и указан правильный.');
+        return alert('Заполните все задания! В каждом вопросе должен быть правильный ответ и минимум один неправильный вариант.');
       }
 
+      // --- НОВАЯ СИСТЕМА УПАКОВКИ ДАННЫХ ---
       const encodedData = btoa(encodeURIComponent(JSON.stringify(gameData)));
       const currentUrl = window.location.href.replace(/\/[^\/]*$/, '/');
-      const widgetUrl = `${currentUrl}maze-widget.html?data=${encodedData}`;
+      const widgetUrl = `${currentUrl}maze-widget.html`; // ССЫЛКА ТЕПЕРЬ КОРОТКАЯ, БЕЗ ?data=
       
-      const iframeStr = `<iframe src="${widgetUrl}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
+      // Данные прячутся в name и страхуются скриптом postMessage
+      const iframeStr = `<div style="width:100%;height:600px;position:relative;">
+  <iframe src="${widgetUrl}" name="${encodedData}" width="100%" height="100%" frameborder="0" allowfullscreen style="border:none;"></iframe>
+  <script>
+    window.addEventListener('message', function(e) {
+      if (e.data === 'get_maze_data') { e.source.postMessage({ type: 'maze_data', payload: '${encodedData}' }, '*'); }
+    });
+  </scr` + `ipt>
+</div>`;
+
       const textarea = document.getElementById('iframe-code');
       textarea.value = iframeStr;
       
       navigator.clipboard.writeText(iframeStr);
       const btn = document.getElementById('generate-btn');
-      btn.innerText = '✅ Код скопирован в буфер обмена!';
-      setTimeout(() => btn.innerText = 'Сгенерировать код для Genially', 2000);
+      btn.innerText = '✅ Код защищен от лимитов и скопирован!';
+      setTimeout(() => btn.innerText = 'Сгенерировать код для Genially', 3000);
     });
   </script>
 </body>
