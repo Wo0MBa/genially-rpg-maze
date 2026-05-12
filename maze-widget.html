@@ -2,8 +2,11 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <!-- ПОДКЛЮЧАЕМ БИБЛИОТЕКУ РАСПАКОВКИ ТЕКСТА -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
   <style>
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; }
+    
     #game-window { position: relative; width: 1200px; height: 700px; overflow: hidden; background-color: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); flex-shrink: 0; }
     #game-container { position: absolute; inset: 0; background-position: center; background-repeat: no-repeat; }
     
@@ -69,33 +72,31 @@
     }
     window.addEventListener('resize', resizeGame);
 
-    // --- УМНАЯ ЗАГРУЗКА ДАННЫХ ---
     let gameData = null;
     const urlParams = new URLSearchParams(window.location.search);
+    const rawData = urlParams.get('data');
 
-    try {
-      // 1. Старый метод (если кто-то сохранил длинную ссылку)
-      if (urlParams.get('data')) {
-        gameData = JSON.parse(decodeURIComponent(atob(urlParams.get('data'))));
-      } 
-      // 2. Новый метод (Чтение из скрытого атрибута name)
-      else if (window.name && window.name.length > 50) {
-        gameData = JSON.parse(decodeURIComponent(atob(window.name)));
+    if (rawData) {
+      try {
+        // 1. Сначала пробуем расшифровать новым архиватором LZ-String
+        const decompressed = LZString.decompressFromEncodedURIComponent(rawData);
+        if (decompressed) {
+          gameData = JSON.parse(decompressed);
+        } else {
+          // 2. Если это старая ссылка (до обновления), используем старый метод Base64
+          gameData = JSON.parse(decodeURIComponent(atob(rawData)));
+        }
+      } catch(e) { 
+        // Подстраховка для совсем старых ссылок
+        try { gameData = JSON.parse(decodeURIComponent(atob(rawData))); } catch(err) {}
       }
-    } catch(e) { console.warn("Ошибка прямого чтения:", e); }
+    }
 
     if (gameData) {
       initGame(gameData);
     } else {
-      // 3. Запасной метод: Запрашиваем данные у скрипта родителя
-      window.parent.postMessage('get_maze_data', '*');
-      window.addEventListener('message', function(e) {
-        if (e.data && e.data.type === 'maze_data') {
-          initGame(JSON.parse(decodeURIComponent(atob(e.data.payload))));
-        }
-      });
+      document.body.innerHTML = "<h2 style='color:white;text-align:center;'>Ошибка: Нет данных для загрузки игры</h2>";
     }
-    // ----------------------------
 
     function initGame(data) {
       const container = document.getElementById('game-container');
