@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Генератор Лабиринта Genially</title>
+  <!-- ПОДКЛЮЧАЕМ БИБЛИОТЕКУ СЖАТИЯ ТЕКСТА -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+  
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #0c1427; color: #e0e0e0; padding: 20px; }
     .container { max-width: 900px; margin: 0 auto; background: rgba(0, 0, 0, 0.8); padding: 20px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
@@ -77,7 +80,7 @@
       <h3>4. Финал</h3>
     </div>
     <button id="generate-btn" style="background: #00cc66;">Сгенерировать код для Genially</button>
-    <textarea id="iframe-code" rows="6" readonly style="margin-top: 15px;"></textarea>
+    <textarea id="iframe-code" rows="5" readonly style="margin-top: 15px;"></textarea>
   </div>
 
   <script>
@@ -266,29 +269,22 @@
         return alert('Заполните все задания! В каждом вопросе должен быть правильный ответ и минимум один неправильный вариант.');
       }
 
-      const encodedData = btoa(encodeURIComponent(JSON.stringify(gameData)));
-      const currentUrl = window.location.href.replace(/\/[^\/]*$/, '/');
-      const widgetUrl = `${currentUrl}maze-widget.html`;
+      // МАГИЯ СЖАТИЯ: Теперь русский текст будет весить в 10 раз меньше!
+      const compressedData = LZString.compressToEncodedURIComponent(JSON.stringify(gameData));
       
-      // СЕКРЕТНОЕ ОРУЖИЕ ПРОТИВ ЛИМИТОВ GENIALLY
-      // Ссылка (src) теперь короткая. Все данные лежат в name и передаются через postMessage.
-      const iframeStr = `<div style="width:100%;height:600px;position:relative;">
-  <iframe id="maze-widget" src="${widgetUrl}" name="${encodedData}" width="100%" height="100%" frameborder="0" allowfullscreen style="border:none;"></iframe>
-  <script>
-    window.addEventListener('message', function(e) {
-      if (e.data === 'get_maze_data') {
-        document.getElementById('maze-widget').contentWindow.postMessage({ type: 'maze_data', payload: '${encodedData}' }, '*');
-      }
-    });
-  </scr` + `ipt>
-</div>`;
-
+      const currentUrl = window.location.href.replace(/\/[^\/]*$/, '/');
+      
+      // Возвращаем классическую структуру ссылки, но теперь она крошечная
+      const widgetUrl = `${currentUrl}maze-widget.html?data=${compressedData}`;
+      
+      const iframeStr = `<iframe src="${widgetUrl}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`;
+      
       const textarea = document.getElementById('iframe-code');
       textarea.value = iframeStr;
       
       navigator.clipboard.writeText(iframeStr);
       const btn = document.getElementById('generate-btn');
-      btn.innerText = '✅ Идеальный код для Genially скопирован!';
+      btn.innerText = '✅ Код сжат и скопирован!';
       setTimeout(() => btn.innerText = 'Сгенерировать код для Genially', 3000);
     });
   </script>
